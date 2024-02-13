@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Game Waiting Room</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .waiting-room {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .room {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .room-title {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .room-info {
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .join-button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        ul, li {
+            list-style-type: none;
+            padding: 0;
+        }
+    </style>
+</head>
+<body>
+<div class="waiting-room">
+    <h1>Salles d'attentes disponibles</h1>
+
+    <ul id="roomList">
+    </ul>
+    <button class="join-button" id="createRoom">Créer une nouvelle partie</button>
+</div>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    const socket = io('http://localhost:3000');
+
+    const roomList = $("#roomList");
+    const joinRoom = "<button class='join-button'>Rejoindre</button>";
+
+    $("#createRoom").on("click", createRoom);
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+        window.location.href = "index.html";
+    }
+
+    socket.on("waitingRooms", (rooms) => {
+        roomList.html("");
+        rooms.forEach((room) => {
+            const li = $("<li></li>");
+            li.addClass("room");
+
+            const divTitle = $("<div></div>").addClass("room-title").text("Lobby " + room.id);
+            const divInfo = $("<div></div>").addClass("room-info").text("Joueurs : " + room.players.length);
+            const joinButton = $(joinRoom);
+            joinButton.on("click", setRoom);
+            joinButton.attr('id', room.id);
+
+            li.append(divTitle);
+            li.append(divInfo);
+            li.append(joinButton);
+
+            roomList.append(li);
+        })
+    })
+
+    socket.on("changePage", (dest, gameId) => {
+        if (dest && gameId !== null) {
+            localStorage.setItem("gameId", gameId);
+            window.location.href = dest;
+        } else {
+            // Manage failed room join
+        }
+    })
+
+    function setRoom() {
+        socket.emit("joinRoom", token, this.id);
+    }
+
+    function createRoom() {
+        socket.emit("createRoom", token);
+    }
+
+    $(document).ready(function () {
+        socket.emit("getRooms");
+        socket.emit("confirmId", token, null);
+    });
+</script>
+
+</body>
+</html>

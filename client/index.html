@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GTN - Connexion</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8f9fa;
+        }
+
+        .login-form {
+            width: 350px;
+            padding: 20px;
+            border-radius: 5px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+    <div class="row">
+        <div class="col-md-5">
+            <div class="form-container">
+                <h2 class="text-center mb-4">Connexion</h2>
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">Adresse email</label>
+                        <input type="text" class="form-control" id="loginEmail" name="email" placeholder="Entez votre adresse email">
+                    </div>
+                    <div class="form-group">
+                        <label for="loginPassword">Mot de passe</label>
+                        <input type="password" class="form-control" id="loginPassword" name="password" placeholder="Entez votre mot de passe">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Connexion</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-md-2"></div>
+        <div class="col-md-5">
+            <div class="form-container">
+                <h2 class="text-center mb-4">Inscription</h2>
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label for="registerEmail">Adresse email</label>
+                        <input type="text" class="form-control" id="registerEmail" name="email" placeholder="Entez votre adresse email">
+                    </div>
+                    <div class="form-group">
+                        <label for="registerPassword">Mot de passe</label>
+                        <input type="password" class="form-control" id="registerPassword" name="password" placeholder="Créez un mot de passe">
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirmation mot de passe</label>
+                        <input type="password" class="form-control" id="confirmPassword" name="checkPassword" placeholder="Confirmez votre mot de passe">
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block">Inscription</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    const socket = io('http://localhost:3000');
+
+    $('#loginForm').submit(function(event) {
+        event.preventDefault();
+        socket.emit("login", $("#loginEmail").val(), $("#loginPassword").val())
+        event.preventDefault();
+    });
+
+    socket.on('loginResponse', (response, location, token) => {
+        if (response === true) {
+            localStorage.setItem("token", token);
+            window.location.href = location;
+        } else {
+            if (Array.isArray(response)) {
+                alert(response);
+            } else {
+                alert("La connexion au serveur à échoué.\nLe serveur n'est peut-être pas lancé ?");
+            }
+        }
+    });
+</script>
+</body>
+
+</html>

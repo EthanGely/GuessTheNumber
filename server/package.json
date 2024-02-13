@@ -1,0 +1,30 @@
+{
+  "name": "guessthenumber",
+  "version": "1.0.0",
+  "description": "Guess the number game",
+  "main": "app.js",
+  "type": "module",
+  "engines": {
+    "node": "=18.19.0"
+  },
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.2",
+    "compression": "^1.7.4",
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "socket.io": "^4.7.4"
+  },
+  "scripts": {
+    "start": "node app.js"
+  },
+  "keywords": [
+    "Guess",
+    "Number",
+    "Game"
+  ],
+  "author": "Ethan G",
+  "license": "ISC"
+}

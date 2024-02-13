@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Final View</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+        }
+
+        .final-view {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+
+        .confirmation-section,
+        .countdown-section,
+        .results-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background-color: #f9f9f9;
+        }
+
+        .confirmation-button,
+        .stop-button {
+            padding: 10px 20px;
+            background-color: #3498db;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 0 auto;
+            display: flex;
+        }
+
+        #confirmButton {
+            background: orange;
+        }
+
+        #confirmButton.ready {
+            background: green;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .ranking-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .ranking-table th,
+        .ranking-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .ranking-table th {
+            background-color: #3498db;
+            color: #fff;
+        }
+
+        .center {
+            display: flex;
+            margin-left: auto;
+            margin-right: auto;
+            width: fit-content;
+            text-align: center;
+        }
+
+        #countdown-timer {
+            font-size: 20px;
+        }
+
+        tbody tr:nth-child(even) {
+            background: lightskyblue;
+        }
+
+        tbody tr:nth-child(odd) {
+            background: dodgerblue;
+        }
+
+        tbody tr.highlight {
+            background: #aae3aa;
+        }
+    </style>
+</head>
+<body>
+<div class="final-view">
+
+    <div class="confirmation-section" id="confirmation">
+        <h2 class="center">Confirmation (<span id="confirmTitle">En attente</span>)</h2>
+        <button class="confirmation-button center hidden" id="confirmButton">Prêt ?</button>
+    </div>
+
+    <div class="countdown-section hidden" id="countdown">
+        <h2 id="countdownTitle">Préparez-vous !</h2>
+        <p>Temps à trouver : <span id="timeToFind"></span>&nbsp;secondes</p>
+        <p id="countdown-timer" class="center">Début de la partie dans&nbsp;<span id="countdownTime">5</span>&nbsp;secondes</p>
+        <button class="stop-button hidden" id="stopButton">Stop</button>
+    </div>
+
+    <div class="results-section hidden" id="results">
+        <h2>Résultats</h2>
+
+        <div>
+            <strong>Votre position:</strong> <span id="playerPosition">1er</span>
+        </div>
+
+        <!-- Overall Ranking Table -->
+        <table class="ranking-table">
+            <thead>
+            <tr>
+                <th>Rang</th>
+                <th>Joueur</th>
+                <th>Temps</th>
+                <th>Delta</th>
+            </tr>
+            </thead>
+            <tbody id="tableResults"></tbody>
+        </table>
+    </div>
+
+</div>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script>
+    // Socket
+    const socket = io("http://localhost:3000");
+
+    // Parties du jeu
+    const confirmation = $("#confirmation");
+    const countdown = $("#countdown");
+    const results = $("#results");
+
+    // Bouton ready
+    const confirmButton = $("#confirmButton");
+
+    // confirm title
+    const confirmTitle = $("#confirmTitle");
+
+    // Titre du compte à rebours
+    const countdownTitle = $("#countdownTitle");
+
+    // Bouton stop (compte à rebours)
+    const stopButton = $("#stopButton");
+
+    // Tableau des résultats
+    const tableResults = $("#tableResults");
+
+    const countdownTime = $("#countdownTime");
+
+    const timeToFind = $("#timeToFind");
+
+    const status = $("#countdown-timer");
+
+    const playerPosition = $("#playerPosition");
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+        window.location.href = "index.html";
+    }
+
+    const gameId = localStorage.getItem("gameId");
+    if (!gameId) {
+        window.location.href = "waitingRoom.html";
+    }
+
+    // Listenner sur le bouton ready
+    confirmButton.on("click", confirm);
+
+    socket.on('updateConfirmations', (title) => {
+        confirmTitle.text(title);
+    });
+
+    socket.on('showView', (viewName) => {
+        show(viewName);
+    })
+
+    socket.on("showTimeToFind", (time) => {
+        timeToFind.text(time);
+    })
+
+    socket.on('updateTime', (time) => {
+        countdownTime.text(time);
+    })
+
+    socket.on("startGame", () => {
+        countdownTitle.text("Début de la partie");
+        status.text("Partie en cours");
+        stopButton.removeClass("hidden");
+        stopButton.on("click", stopTime);
+    })
+
+    socket.on("showResults", (results, position) => {
+        show("results");
+        printResults(results, position);
+        const pos = position === 1 ? '1er' : position + 'eme';
+        playerPosition.text(pos);
+    })
+
+    function show(elementName) {
+        const elementToShow = $("#" + elementName);
+
+        if (elementToShow) {
+            confirmation.addClass("hidden");
+            countdown.addClass("hidden")
+            results.addClass("hidden")
+            elementToShow.removeClass("hidden");
+        }
+    }
+
+    function confirm() {
+        this.classList.toggle("ready");
+
+        if (this.classList.contains("ready")) {
+            this.innerText = "Prêt !";
+            socket.emit("ready", true);
+        } else {
+            this.innerText = "Prêt ?";
+            socket.emit("ready", false);
+        }
+    }
+
+    function printResults(results, position) {
+        tableResults.html("");
+
+        results.forEach((result) => {
+            const tr = document.createElement("tr");
+            const tdRank = document.createElement("td");
+            const tdId = document.createElement("td");
+            const tdTime = document.createElement("td");
+            const tdDelta = document.createElement("td");
+
+            tdRank.innerText = result.rank;
+            tdId.innerText = result.id;
+            tdTime.innerText = result.timeSpent + "s";
+            tdDelta.innerText = result.delta + "ms";
+
+            if (result.rank === position) {
+                tr.classList.add("highlight");
+            }
+
+            tr.append(tdRank);
+            tr.append(tdId);
+            tr.append(tdTime);
+            tr.append(tdDelta);
+            tableResults.append(tr);
+        });
+    }
+
+    function stopTime() {
+        socket.emit("stopTime");
+        countdownTitle.text("En attente des autres joueurs");
+        stopButton.css("background-color", "green")
+    }
+
+    $( document ).ready(function() {
+        socket.emit("confirmId", token, gameId);
+        show("confirmation");
+    });
+
+</script>
+
+</body>
+</html>
